@@ -12,3 +12,4 @@ rootfs*
 */*.built
 .docker-container*.built
 docker-rules.mk
+*.tar
