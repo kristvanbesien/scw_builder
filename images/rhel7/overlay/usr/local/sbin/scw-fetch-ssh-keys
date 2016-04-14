@@ -46,3 +46,6 @@ if [ -f /home/cloud_user/.ssh/instance_keys ]; then
 EOF
 	(cat /home/cloud_user/.ssh/instance_keys | grep -v "^#" || true) >> /home/cloud_user/.ssh/authorized_keys
 fi
+# Fix ownership
+
+chown -R cloud_user:cloud_user /home/cloud_user/.ssh
