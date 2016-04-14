@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# This script will clean the rootfs for a normal usage.
+# Globally, it will cancel effects of the builder-enter script.
+# It also clean rootfs to make image "forkable"
+
+set -e
+
+
+# remove potentially existing docker aptitude tuning
+rm -f /etc/apt/apt.conf.d/docker-*
+#rm -f /.dockerenv /.dockerinit
+
+# remove ssh host keys so they are regenerated on first boot
+rm -f /etc/ssh/*_key*
+
+# clean history
+rm -f /root/.history /root/.bash_history
+
+yum clean all
+
+# clean systemd
+rm -f /var/log/journal/*
+
+# Update locate cache
+updatedb 2>/dev/null || true
+
+# Create the "cloud_user" user. 
+
+useradd -k -G wheel cloud_user
+
