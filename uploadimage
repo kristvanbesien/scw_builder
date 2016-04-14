@@ -1,0 +1,69 @@
+#!/usr/bin/bash
+
+FILE=$1
+NAME=$2
+
+SNAPSHOT_NAME=imagewriter-$(date +%Y-%m-%d_%H:%M)
+IMAGE_NAME=${NAME:-$SNAPSHOT_NAME}
+IMAGE_BOOTSCRIPT=stable
+SCW_COMMERCIAL_TYPE=VC1S
+VOLUME_SIZE=50GB
+SCW_TARGET_ARCH=x86_64
+
+if [ -z "${1}" ]; then
+    echo "usage: $(basename ${0}) <tarfile> [imagename]"
+    echo ""
+    echo "examples:"
+    echo "  - $(basename ${0}) rhel7-base-export.tar rhel7-base"
+    exit 1
+fi
+
+
+
+echo "[+] Tarball: ${FILE}"
+echo "[+] Image name: ${NAME}"
+
+
+echo "[+] Creating new server in rescue mode with a secondary volume..."
+SERVER=$(SCW_TARGET_ARCH="$SCW_TARGET_ARCH" scw run --commercial-type="${SCW_COMMERCIAL_TYPE}" -d --env="boot=none INITRD_DROPBEAR=1" --name="image-writer" "${VOLUME_SIZE}")
+echo "[+] Server created: ${SERVER}"
+echo "[+] Booting..."
+scw exec -w "${SERVER}" 'uname -a'
+echo "[+] Server is booted"
+
+echo "[+] Formating and mounting disk..."
+scw exec "${SERVER}" '/sbin/mkfs.ext4 /dev/vda && mkdir -p /mnt && mount /dev/vda /mnt'
+echo "[+] /dev/nbd1 formatted in ext4 and mounted on /mnt"
+
+echo "[+] Find out IP of server"
+IP=$(scw inspect $SERVER  | jq -r '.[0].public_ip.address')
+echo "[+] Server IP is ${IP}"
+
+
+echo "[+] Upload and extract tarball to disk"
+cat $FILE | ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${IP} "tar -xpf - -C /mnt"
+
+echo "[+] Tarball extracted on disk"
+
+echo "[+] Stopping the server"
+scw stop "${SERVER}" >/dev/null
+scw wait "${SERVER}"
+echo "[+] Server stopped"
+
+
+echo "[+] Creating a snapshot of disk 1"
+SNAPSHOT=$(scw commit --volume=0 "${SERVER}" "${SNAPSHOT_NAME}")
+echo "[+] Snapshot ${SNAPSHOT} created"
+
+
+echo "[+] Creating an image based of the snapshot"
+IMAGE=$(scw tag --arch="${SCW_TARGET_ARCH}" --bootscript="${IMAGE_BOOTSCRIPT}" "${SNAPSHOT}" "${IMAGE_NAME}")
+echo "[+] Image created: ${IMAGE}"
+
+
+echo "[+] Deleting temporary server"
+scw rm "${SERVER}" >/dev/null
+echo "[+] Server deleted"
+
+
+
