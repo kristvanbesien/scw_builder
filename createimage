@@ -1,0 +1,11 @@
+#!/bin/bash
+DOCKERDIR=${1:-.}
+NAME=${2:-$DOCKERDIR}
+DOCKERTAG=${3:-latest}
+DOCKERNAME=kvb/$NAME:$DOCKERTAG
+
+sudo docker build  -t $DOCKERNAME $DOCKERDIR
+sudo docker run --name latest-export --entrypoint /dontexists $DOCKERNAME  2>/dev/null || true
+sudo docker export latest-export > $NAME-export.tar
+sudo docker rm latest-export
+

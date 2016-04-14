@@ -27,5 +27,5 @@ updatedb 2>/dev/null || true
 
 # Create the "cloud_user" user. 
 
-useradd -k -G wheel cloud_user
+useradd -m  -G wheel cloud_user
 
