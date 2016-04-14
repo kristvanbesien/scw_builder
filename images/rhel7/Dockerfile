@@ -1,31 +1,16 @@
 ## -*- docker-image-name: "rhel7:latest" -*-
-FROM rhel7/rhel
-# following 'FROM' lines are used dynamically thanks do the image-builder
-# which dynamically update the Dockerfile if needed.
-
+FROM rhel7
 
 # Environment
-ENV SCW_BASE_IMAGE rhel7:latest
+ENV SCW_BASE_IMAGE rhel7
 
 
 # Adding and calling builder-enter
-COPY ./overlay-${ARCH}/etc/yum.repos.d/ /etc/yum.repos.d/
-COPY ./overlay-image-tools/usr/local/sbin/scw-builder-enter /usr/local/sbin/
-RUN set -e; case "${ARCH}" in \
-    armv7l|armhf|arm) \
-        echo "ARM not supported by RHEL7"\
-        exit 1\ 
-      ;; \
-    x86_64|amd64) \
-        yum install -y redhat-lsb-core; \
-        /bin/sh -e /usr/local/sbin/scw-builder-enter; \
-        yum clean all; \
-      ;; \
-    esac
+COPY ./overlay/usr/local/sbin/ /usr/local/sbin/
+RUN  /bin/sh -e /usr/local/sbin/scw-builder-enter 
 
-
-RUN if [ "$ARCH" = "armv7l" ]; then YUM_OPTS=--nogpg; fi \
- && yum install ${YUM_OPTS} -y \
+# Install stuff...
+RUN yum install ${YUM_OPTS} -y \
       bash \
       bash-completion \
       ca-certificates \
@@ -38,13 +23,11 @@ RUN if [ "$ARCH" = "armv7l" ]; then YUM_OPTS=--nogpg; fi \
       iperf \
       locate \
       make \
-      mg \
       ntp \
       ntpdate \
       rsync \
       screen \
       socat \
-      ssh \
       sudo \
       sysstat \
       tar \
@@ -52,12 +35,12 @@ RUN if [ "$ARCH" = "armv7l" ]; then YUM_OPTS=--nogpg; fi \
       tmux \
       vim \
       wget \
+      openssh-clients \
+      openssh-server \
  && yum clean all
 
-
 # Patch rootfs
-COPY ./overlay-image-tools ./overlay ./overlay-${ARCH} /
-
+COPY ./overlay/ /
 
 # Enable Scaleway services
 RUN systemctl enable \
@@ -65,7 +48,10 @@ RUN systemctl enable \
 	scw-fetch-ssh-keys \
 	scw-gen-machine-id \
 	scw-kernel-check \
-	scw-sync-kernel-modules
+	scw-sync-kernel-modules 
+
+# Enable sshd so we can log in.
+RUN systemctl enable sshd
 
 
 # Clean rootfs from image-builder
