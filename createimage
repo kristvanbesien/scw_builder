@@ -4,6 +4,16 @@ NAME=${2:-$DOCKERDIR}
 DOCKERTAG=${3:-latest}
 DOCKERNAME=kvb/$NAME:$DOCKERTAG
 
+if [ -z "${1}" ]; then
+    echo "usage: $(basename ${0}) <Dockerdir> [name] [tag]"
+    echo ""
+    echo "examples:"
+    echo "  - $(basename ${0}) images/rhel7 rhel7-base"
+    exit 1
+fi
+
+
+
 sudo docker build  -t $DOCKERNAME $DOCKERDIR
 sudo docker run --name latest-export --entrypoint /dontexists $DOCKERNAME  2>/dev/null || true
 sudo docker export latest-export > $NAME-export.tar

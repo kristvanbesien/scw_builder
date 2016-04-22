@@ -37,6 +37,9 @@ RUN yum install ${YUM_OPTS} -y \
       wget \
       openssh-clients \
       openssh-server \
+      iproute \
+      iputils \
+      net-tools \
  && yum clean all
 
 # Patch rootfs
